@@ -1,156 +1,133 @@
-const Product = require('../models/Product');
-const Category = require('../models/Category');
-const path = require('path');
-const fs = require('fs');
+const { Product, Category } = require("../models")
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5000'; // Ensure this is set correctly
+// Get all products
+exports.getAllProducts = async (req, res) => {
+  try {
+    const products = await Product.findAll({
+      include: [{ model: Category, attributes: ["id", "name"] }],
+    })
+    res.status(200).json(products)
+  } catch (error) {
+    console.error("Error fetching products:", error)
+    res.status(500).json({ message: "Failed to fetch products", error: error.message })
+  }
+}
 
-// Function to properly construct the image URL by removing any leading slashes from the file path
-const constructImageUrl = (imagePath) => {
-    return `${BASE_URL}/${imagePath.replace(/^\/+/, '')}`; // Remove leading slashes
-};
+// Get product by ID
+exports.getProductById = async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id, {
+      include: [{ model: Category, attributes: ["id", "name"] }],
+    })
 
-//  Get All Products (Public)
-const getAllProducts = async (req, res) => {
-    try {
-        const products = await Product.findAll({
-            include: { model: Category, attributes: ['name'] }
-        });
-
-        // Map the product image paths to full URLs
-        const updatedProducts = products.map(product => {
-            const imagePaths = JSON.parse(product.image || '[]').map(image => constructImageUrl(image));
-            return {
-                ...product.toJSON(),
-                image: imagePaths
-            };
-        });
-
-        res.status(200).json(updatedProducts);
-    } catch (error) {
-        console.error('Error fetching products:', error);
-        res.status(500).json({ error: 'Failed to fetch products.' });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" })
     }
-};
 
-// Get Product by ID (Public)
-const getProductById = async (req, res) => {
-    try {
-        const product = await Product.findByPk(req.params.id, {
-            include: { model: Category, attributes: ['name'] }
-        });
-        if (!product) return res.status(404).json({ error: 'Product not found.' });
+    res.status(200).json(product)
+  } catch (error) {
+    console.error("Error fetching product:", error)
+    res.status(500).json({ message: "Failed to fetch product", error: error.message })
+  }
+}
 
-        // Map image paths to full URLs
-        const imagePaths = JSON.parse(product.image || '[]').map(image => constructImageUrl(image));
-        res.status(200).json({
-            ...product.toJSON(),
-            image: imagePaths
-        });
-    } catch (error) {
-        console.error('Error fetching product:', error);
-        res.status(500).json({ error: 'Failed to fetch product.' });
+// Create new product
+exports.createProduct = async (req, res) => {
+  try {
+    const { name, description, price, stock, image_url, category_id } = req.body
+
+    if (!name || !price) {
+      return res.status(400).json({ message: "Product name and price are required" })
     }
-};
 
-// Add Product (Admin Only)
-const addProduct = async (req, res) => {
-    try {
-        console.log("Request Body:", req.body); // Debugging
-        console.log("Uploaded Files:", req.files); // Debugging
-
-        const { name, description, price, category_id, stock } = req.body;
-        const user_id = req.user.id;
-
-        if (!name || !price || !category_id || !stock) {
-            return res.status(400).json({ error: 'All fields are required.' });
-        }
-
-        // Generate image paths
-        const imagePaths = req.files ? req.files.map(file => `/uploads/products/${file.filename}`) : [];
-
-        const product = await Product.create({
-            name,
-            description,
-            price,
-            category_id,
-            stock,
-            image: JSON.stringify(imagePaths),
-            user_id
-        });
-
-        res.status(201).json({ message: 'Product added successfully!', product });
-    } catch (error) {
-        console.error('Error adding product:', error);
-        res.status(500).json({ error: 'Server error' });
+    // Check if category exists
+    if (category_id) {
+      const category = await Category.findByPk(category_id)
+      if (!category) {
+        return res.status(400).json({ message: "Invalid category ID" })
+      }
     }
-};
 
-// Update Product (Admin Only)
-const updateProduct = async (req, res) => {
-    try {
-        const { name, price, category_id, stock, description, deleteImages } = req.body;
-        const product = await Product.findByPk(req.params.id);
+    const newProduct = await Product.create({
+      name,
+      description,
+      price,
+      stock: stock || 0,
+      image_url,
+      category_id,
+    })
 
-        if (!product) return res.status(404).json({ error: 'Product not found.' });
+    res.status(201).json(newProduct)
+  } catch (error) {
+    console.error("Error creating product:", error)
+    res.status(500).json({ message: "Failed to create product", error: error.message })
+  }
+}
 
-        // Validate category existence
-        if (category_id) {
-            const categoryExists = await Category.findByPk(category_id);
-            if (!categoryExists) return res.status(400).json({ error: 'Invalid category! Category does not exist.' });
-        }
+// Update product
+exports.updateProduct = async (req, res) => {
+  try {
+    const { name, description, price, stock, image_url, category_id } = req.body
+    const product = await Product.findByPk(req.params.id)
 
-        // Handle multiple image updates
-        let imageUrls = product.image ? JSON.parse(product.image) : []; // Keep existing images
-        if (req.files && req.files.length > 0) {
-            // Delete old images
-            if (imageUrls.length > 0) {
-                imageUrls.forEach(img => {
-                    const oldImagePath = path.join(__dirname, '..', img);
-                    if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
-                });
-            }
-            // Store new image URLs
-            imageUrls = req.files.map(file => `uploads/products/${file.filename}`);
-        }
-
-        await product.update({
-            name,
-            price,
-            category_id,
-            stock,
-            description,
-            image: JSON.stringify(imageUrls)  // Update images
-        });
-
-        res.status(200).json({ message: 'Product updated successfully.', product });
-    } catch (error) {
-        console.error('Error updating product:', error);
-        res.status(500).json({ error: 'Failed to update product.' });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" })
     }
-};
 
-// Delete Product (Admin Only)
-const deleteProduct = async (req, res) => {
-    try {
-        const product = await Product.findByPk(req.params.id);
-        if (!product) return res.status(404).json({ error: 'Product not found.' });
-
-        // Remove images from storage
-        const imagePaths = JSON.parse(product.image || '[]');
-        imagePaths.forEach(image => {
-            const imagePath = path.join(__dirname, '..', image);
-            if (fs.existsSync(imagePath)) {
-                fs.unlinkSync(imagePath);
-            }
-        });
-
-        await product.destroy();
-        res.status(200).json({ message: 'Product deleted successfully.' });
-    } catch (error) {
-        console.error('Error deleting product:', error);
-        res.status(500).json({ error: 'Failed to delete product.' });
+    // Check if category exists if category_id is provided
+    if (category_id) {
+      const category = await Category.findByPk(category_id)
+      if (!category) {
+        return res.status(400).json({ message: "Invalid category ID" })
+      }
     }
-};
 
-module.exports = { addProduct, getAllProducts, getProductById, updateProduct, deleteProduct };
+    await product.update({
+      name: name || product.name,
+      description: description !== undefined ? description : product.description,
+      price: price || product.price,
+      stock: stock !== undefined ? stock : product.stock,
+      image_url: image_url !== undefined ? image_url : product.image_url,
+      category_id: category_id !== undefined ? category_id : product.category_id,
+    })
+
+    res.status(200).json(product)
+  } catch (error) {
+    console.error("Error updating product:", error)
+    res.status(500).json({ message: "Failed to update product", error: error.message })
+  }
+}
+
+// Delete product
+exports.deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id)
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" })
+    }
+
+    await product.destroy()
+    res.status(200).json({ message: "Product deleted successfully" })
+  } catch (error) {
+    console.error("Error deleting product:", error)
+    res.status(500).json({ message: "Failed to delete product", error: error.message })
+  }
+}
+
+// Get products by category
+exports.getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params
+
+    const products = await Product.findAll({
+      where: { category_id: categoryId },
+      include: [{ model: Category, attributes: ["id", "name"] }],
+    })
+
+    res.status(200).json(products)
+  } catch (error) {
+    console.error("Error fetching products by category:", error)
+    res.status(500).json({ message: "Failed to fetch products", error: error.message })
+  }
+}

@@ -1,21 +1,7 @@
-// Import Sequelize (an ORM for Node.js to interact with databases)
-const { Sequelize } = require('sequelize');
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
 
-// Load environment variables from .env file
-require('dotenv').config();
+dotenv.config();
 
-// Create a new Sequelize instance with database credentials from environment variables
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 5432,  // Default port for PostgreSQL is 5432
-    dialect: process.env.DB_DIALECT || 'postgres',  // Use 'postgres' for PostgreSQL
-    logging: console.log
-});
-
-// Synchronize the database schema without forcing a drop (force: false means it won't delete existing tables)
-sequelize.sync({ force: false })
-    .then(() => console.log('Tables are checked'))
-    .catch(err => console.error('Sequelize Sync Error:', err));
-
-// Export the sequelize instance for use in other parts of the project
-module.exports = sequelize;
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+export default supabase;

@@ -1,23 +1,39 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const supabase = require('../config/supabaseClient');
 
-const Contact = sequelize.define("Contact", {
-  first_name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    validate: { isEmail: true },
-  },
-  subject: {
-    type: DataTypes.STRING,
-  },
-  message: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
-});
+// Create a contact
+const createContact = async (data) => {
+  const { data: contact, error } = await supabase
+    .from('contacts')
+    .insert([data])
+    .select();
 
-module.exports = Contact;
+  if (error) throw error;
+  return contact;
+};
+
+// Get all contacts
+const getContacts = async () => {
+  const { data: contacts, error } = await supabase
+    .from('contacts')
+    .select('*');
+
+  if (error) throw error;
+  return contacts;
+};
+
+// Delete a contact by id
+const deleteContact = async (id) => {
+  const { data, error } = await supabase
+    .from('contacts')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return data;
+};
+
+module.exports = {
+  createContact,
+  getContacts,
+  deleteContact,
+};

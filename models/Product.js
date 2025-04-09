@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const sequelize = require('../config/supabaseClient');
 const Category = require('./Category'); // Import Category model
 //const Cart = require('./Cart');
 
