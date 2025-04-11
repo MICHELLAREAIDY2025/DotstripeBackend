@@ -1,5 +1,5 @@
 // controllers/authController.js
-const bcrypt = require('bcrypt');
+/*const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
@@ -60,4 +60,4 @@ exports.login = async (req, res) => {
 exports.logout = (req, res) => {
   res.clearCookie('token');
   res.json({ message: 'Logged out successfully' });
-};
+};*/
