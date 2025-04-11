@@ -1,35 +1,30 @@
 const { DataTypes, Sequelize } = require("sequelize")
 const sequelize = require("../config/db")
 
-const Order = sequelize.define(
-  "Order",
+const Service = sequelize.define(
+  "Service",
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    user_id: {
-      type: DataTypes.INTEGER,
+    name: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
-    total_amount: {
+    description: {
+      type: DataTypes.TEXT,
+    },
+    price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
-    status: {
-      type: DataTypes.ENUM("pending", "processing", "shipped", "delivered", "cancelled"),
-      defaultValue: "pending",
-    },
-    shipping_address: {
-      type: DataTypes.TEXT,
-    },
-    payment_method: {
+    duration: {
       type: DataTypes.STRING,
     },
-    payment_status: {
-      type: DataTypes.ENUM("pending", "paid", "failed"),
-      defaultValue: "pending",
+    image_url: {
+      type: DataTypes.STRING,
     },
     created_at: {
       type: DataTypes.DATE,
@@ -41,9 +36,9 @@ const Order = sequelize.define(
     },
   },
   {
-    tableName: "orders",
+    tableName: "services",
     timestamps: false,
   },
 )
 
-module.exports = Order
+module.exports = Service

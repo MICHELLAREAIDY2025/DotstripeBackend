@@ -8,8 +8,14 @@ exports.getUserCart = async (req, res) => {
     const cartItems = await Cart.findAll({
       where: { user_id: userId },
       include: [
-        { model: Product, attributes: ["id", "name", "price", "image_url"] },
-        { model: Service, attributes: ["id", "name", "price", "image_url"] },
+        {
+          model: Product,
+          attributes: ["id", "name", "price", "image_url"],
+        },
+        {
+          model: Service,
+          attributes: ["id", "name", "price", "image_url"],
+        },
       ],
     })
 
@@ -46,18 +52,20 @@ exports.addToCart = async (req, res) => {
     }
 
     // Check if item already exists in cart
-    const existingItem = await Cart.findOne({
-      where: {
-        user_id: userId,
-        ...(product_id ? { product_id } : {}),
-        ...(service_id ? { service_id } : {}),
-      },
-    })
+    const whereClause = { user_id: userId }
+    if (product_id) {
+      whereClause.product_id = product_id
+    } else {
+      whereClause.service_id = service_id
+    }
+
+    const existingItem = await Cart.findOne({ where: whereClause })
 
     if (existingItem) {
       // Update quantity if item already exists
       await existingItem.update({
         quantity: existingItem.quantity + (quantity || 1),
+        updated_at: new Date(),
       })
 
       return res.status(200).json(existingItem)
@@ -69,6 +77,8 @@ exports.addToCart = async (req, res) => {
       product_id,
       service_id,
       quantity: quantity || 1,
+      created_at: new Date(),
+      updated_at: new Date(),
     })
 
     res.status(201).json(newCartItem)
@@ -89,6 +99,7 @@ exports.updateCartItem = async (req, res) => {
       return res.status(400).json({ message: "Quantity must be at least 1" })
     }
 
+    // Check if cart item exists and belongs to user
     const cartItem = await Cart.findOne({
       where: {
         id,
@@ -100,7 +111,12 @@ exports.updateCartItem = async (req, res) => {
       return res.status(404).json({ message: "Cart item not found" })
     }
 
-    await cartItem.update({ quantity })
+    // Update cart item
+    await cartItem.update({
+      quantity,
+      updated_at: new Date(),
+    })
+
     res.status(200).json(cartItem)
   } catch (error) {
     console.error("Error updating cart item:", error)
@@ -114,6 +130,7 @@ exports.removeFromCart = async (req, res) => {
     const userId = req.user.id // Assuming user ID is available from auth middleware
     const { id } = req.params
 
+    // Check if cart item exists and belongs to user
     const cartItem = await Cart.findOne({
       where: {
         id,
@@ -125,6 +142,7 @@ exports.removeFromCart = async (req, res) => {
       return res.status(404).json({ message: "Cart item not found" })
     }
 
+    // Delete cart item
     await cartItem.destroy()
     res.status(200).json({ message: "Item removed from cart" })
   } catch (error) {
@@ -138,6 +156,7 @@ exports.clearCart = async (req, res) => {
   try {
     const userId = req.user.id // Assuming user ID is available from auth middleware
 
+    // Delete all cart items for user
     await Cart.destroy({
       where: { user_id: userId },
     })

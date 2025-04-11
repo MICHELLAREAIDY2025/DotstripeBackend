@@ -1,8 +1,8 @@
 const { DataTypes, Sequelize } = require("sequelize")
 const sequelize = require("../config/db")
 
-const Order = sequelize.define(
-  "Order",
+const Checkout = sequelize.define(
+  "Checkout",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -13,23 +13,25 @@ const Order = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    total_amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
+    order_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: "orders",
+        key: "id",
+      },
     },
-    status: {
-      type: DataTypes.ENUM("pending", "processing", "shipped", "delivered", "cancelled"),
+    payment_intent_id: {
+      type: DataTypes.STRING,
+    },
+    payment_status: {
+      type: DataTypes.ENUM("pending", "processing", "succeeded", "failed"),
       defaultValue: "pending",
     },
     shipping_address: {
       type: DataTypes.TEXT,
     },
-    payment_method: {
-      type: DataTypes.STRING,
-    },
-    payment_status: {
-      type: DataTypes.ENUM("pending", "paid", "failed"),
-      defaultValue: "pending",
+    billing_address: {
+      type: DataTypes.TEXT,
     },
     created_at: {
       type: DataTypes.DATE,
@@ -41,9 +43,9 @@ const Order = sequelize.define(
     },
   },
   {
-    tableName: "orders",
+    tableName: "checkout",
     timestamps: false,
   },
 )
 
-module.exports = Order
+module.exports = Checkout

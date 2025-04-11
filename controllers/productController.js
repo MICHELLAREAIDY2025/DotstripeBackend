@@ -1,10 +1,16 @@
-const { Product, Category } = require("../models")
+const { Product, Category, Cart, OrderItem } = require("../models")
 
 // Get all products
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.findAll({
-      include: [{ model: Category, attributes: ["id", "name"] }],
+      include: [
+        {
+          model: Category,
+          attributes: ["id", "name"],
+        },
+      ],
+      order: [["name", "ASC"]],
     })
     res.status(200).json(products)
   } catch (error) {
@@ -16,8 +22,14 @@ exports.getAllProducts = async (req, res) => {
 // Get product by ID
 exports.getProductById = async (req, res) => {
   try {
-    const product = await Product.findByPk(req.params.id, {
-      include: [{ model: Category, attributes: ["id", "name"] }],
+    const { id } = req.params
+    const product = await Product.findByPk(id, {
+      include: [
+        {
+          model: Category,
+          attributes: ["id", "name"],
+        },
+      ],
     })
 
     if (!product) {
@@ -40,7 +52,7 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "Product name and price are required" })
     }
 
-    // Check if category exists
+    // Check if category exists if provided
     if (category_id) {
       const category = await Category.findByPk(category_id)
       if (!category) {
@@ -55,6 +67,8 @@ exports.createProduct = async (req, res) => {
       stock: stock || 0,
       image_url,
       category_id,
+      created_at: new Date(),
+      updated_at: new Date(),
     })
 
     res.status(201).json(newProduct)
@@ -67,14 +81,16 @@ exports.createProduct = async (req, res) => {
 // Update product
 exports.updateProduct = async (req, res) => {
   try {
+    const { id } = req.params
     const { name, description, price, stock, image_url, category_id } = req.body
-    const product = await Product.findByPk(req.params.id)
 
+    // Check if product exists
+    const product = await Product.findByPk(id)
     if (!product) {
       return res.status(404).json({ message: "Product not found" })
     }
 
-    // Check if category exists if category_id is provided
+    // Check if category exists if provided
     if (category_id) {
       const category = await Category.findByPk(category_id)
       if (!category) {
@@ -82,6 +98,7 @@ exports.updateProduct = async (req, res) => {
       }
     }
 
+    // Update product
     await product.update({
       name: name || product.name,
       description: description !== undefined ? description : product.description,
@@ -89,6 +106,7 @@ exports.updateProduct = async (req, res) => {
       stock: stock !== undefined ? stock : product.stock,
       image_url: image_url !== undefined ? image_url : product.image_url,
       category_id: category_id !== undefined ? category_id : product.category_id,
+      updated_at: new Date(),
     })
 
     res.status(200).json(product)
@@ -101,12 +119,25 @@ exports.updateProduct = async (req, res) => {
 // Delete product
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findByPk(req.params.id)
+    const { id } = req.params
 
+    // Check if product exists
+    const product = await Product.findByPk(id)
     if (!product) {
       return res.status(404).json({ message: "Product not found" })
     }
 
+    // Check if product is in any cart or order
+    const cartCount = await Cart.count({ where: { product_id: id } })
+    const orderCount = await OrderItem.count({ where: { product_id: id } })
+
+    if (cartCount > 0 || orderCount > 0) {
+      return res.status(400).json({
+        message: "Cannot delete product that is in carts or orders",
+      })
+    }
+
+    // Delete product
     await product.destroy()
     res.status(200).json({ message: "Product deleted successfully" })
   } catch (error) {
@@ -122,7 +153,13 @@ exports.getProductsByCategory = async (req, res) => {
 
     const products = await Product.findAll({
       where: { category_id: categoryId },
-      include: [{ model: Category, attributes: ["id", "name"] }],
+      include: [
+        {
+          model: Category,
+          attributes: ["id", "name"],
+        },
+      ],
+      order: [["name", "ASC"]],
     })
 
     res.status(200).json(products)

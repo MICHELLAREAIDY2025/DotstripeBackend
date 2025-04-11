@@ -1,64 +1,54 @@
 const express = require("express")
 const cors = require("cors")
 const cookieParser = require("cookie-parser")
-require("dotenv").config()
-const sequelize = require("./config/supabaseClient.js") // Keep your original import
 const path = require("path")
-const bodyParser = require("body-parser")
-const contactRoutes = require("./routes/contactRoutes")
-const shippingRoutes = require("./routes/shippingRoutes")
+require("dotenv").config()
 
-require("./models/Order")
-require("./models/OrderItem")
-// Import multer config
-require("./middleware/multer.js")
+// Import database connection
+const db = require("./config/db")
 
-const userRoutes = require("./routes/userRoutes")
-const categoryRoutes = require("./routes/categoryRoutes.js")
-
+// Import routes
+const categoryRoutes = require("./routes/categoryRoutes")
 const productRoutes = require("./routes/productRoutes")
+const serviceRoutes = require("./routes/serviceRoutes")
 const cartRoutes = require("./routes/cartRoutes")
 const orderRoutes = require("./routes/orderRoutes")
+const checkoutRoutes = require("./routes/checkoutRoutes")
+const userRoutes = require("./routes/userRoutes") // Add this line to import user routes
+
+// Initialize express app
 const app = express()
 
+// CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || "*", // Allow any origin if FRONTEND_URL is not set
+  credentials: true,
+}
+
+// Middleware
+app.use(cors(corsOptions))
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser())
+
+// Serve static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://mishatote-front-sjue.vercel.app",
-  "https://mishatote-front-sjue-eqpm9tezw-rolamaaloufs-projects.vercel.app",
-  "https://mishatote-front-sjue-git-main-rolamaaloufs-projects.vercel.app",
-]
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true)
-      } else {
-        callback(new Error("Not allowed by CORS"))
-      }
-    },
-    credentials: true,
-  }),
-)
-
-app.use(express.json())
-app.use(cookieParser())
-app.use(bodyParser.json())
-
-app.use("/api/users", userRoutes)
+// API routes
+app.use("/api/categories", categoryRoutes)
 app.use("/api/products", productRoutes)
+app.use("/api/services", serviceRoutes)
 app.use("/api/cart", cartRoutes)
 app.use("/api/orders", orderRoutes)
-app.use("/api/categories", categoryRoutes)
-app.use("/api/contact", contactRoutes)
-app.use("/api/shipping", shippingRoutes)
+app.use("/api/checkout", checkoutRoutes)
+app.use("/api/users", userRoutes) // Add this line to register user routes
 
+// Root route
 app.get("/", (req, res) => {
-  res.send("Backend is Running!")
+  res.send("E-commerce API is running!")
 })
 
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack)
   res.status(500).json({
@@ -68,35 +58,9 @@ app.use((err, req, res, next) => {
   })
 })
 
-// Updated startServer function with retry logic
-const startServer = async () => {
-  let retries = 5
+// Start server
+const PORT = process.env.PORT || 5000
 
-  while (retries) {
-    try {
-      await sequelize.authenticate()
-      console.log("Database connection established successfully.")
-
-      await sequelize.sync()
-      console.log("Database models synchronized.")
-
-      const PORT = process.env.PORT || 5000
-      app.listen(PORT, () => console.log(`Server running on port ${PORT}!`))
-      break // Exit the retry loop if successful
-    } catch (err) {
-      console.error(`Database connection attempt failed (${retries} retries left):`, err)
-      retries -= 1
-
-      if (retries === 0) {
-        console.error("Could not connect to database after multiple attempts. Exiting.")
-        process.exit(1)
-      }
-
-      // Wait before retrying
-      console.log("Waiting 5 seconds before retrying...")
-      await new Promise((resolve) => setTimeout(resolve, 5000))
-    }
-  }
-}
-
-startServer()
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
+})

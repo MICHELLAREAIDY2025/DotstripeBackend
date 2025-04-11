@@ -1,27 +1,52 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/supabaseClient');
-const Category = require('./Category'); // Import Category model
-//const Cart = require('./Cart');
+const { DataTypes, Sequelize } = require("sequelize")
+const sequelize = require("../config/db")
 
-const Product = sequelize.define('Product', {
-    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    name: { type: DataTypes.STRING, allowNull: false },
-    description: { type: DataTypes.TEXT, allowNull: true },
-    price: { type: DataTypes.FLOAT, allowNull: false },
-    category_id: { 
-        type: DataTypes.INTEGER, 
-        allowNull: false, 
-        references: { model: Category, key: 'id' } //  Foreign Key
+const Product = sequelize.define(
+  "Product",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
-    stock: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    image: { type: DataTypes.JSON, allowNull: true }
-}, { timestamps: true });
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    description: {
+      type: DataTypes.TEXT,
+    },
+    price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    stock: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    image_url: {
+      type: DataTypes.STRING,
+    },
+    category_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: "category",
+        key: "id",
+      },
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: Sequelize.NOW,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: Sequelize.NOW,
+    },
+  },
+  {
+    tableName: "products",
+    timestamps: false,
+  },
+)
 
-//  Set up Product-Category relationship
-Category.hasMany(Product, { foreignKey: 'category_id', onDelete: 'CASCADE' });
-Product.belongsTo(Category, { foreignKey: 'category_id' });
-
-//product-cart relationship
-//Product.hasMany(Cart, { foreignKey: 'product_id', onDelete: 'CASCADE' });
-
-module.exports = Product;
+module.exports = Product

@@ -1,36 +1,17 @@
-const express = require('express');
-const productController = require('../controllers/productController');
-const authMiddleware = require('../middleware/authMiddleware');
-const upload = require('../middleware/multer');
+const express = require("express")
+const router = express.Router()
+const productController = require("../controllers/productController")
+const { authenticate, isAdmin } = require("../middlewares/authMiddleware")
+const upload = require("../middlewares/multer")
 
-const router = express.Router();
+// Public routes
+router.get("/", productController.getAllProducts)
+router.get("/:id", productController.getProductById)
+router.get("/category/:categoryId", productController.getProductsByCategory)
 
-// Public Routes (Customers can access these)
-router.get('/', productController.getAllProducts); // Get all products
-router.get('/:id', productController.getProductById); // Get product by ID
+// Protected routes (admin only)
+router.post("/", authenticate, isAdmin, upload.single("image"), productController.createProduct)
+router.put("/:id", authenticate, isAdmin, upload.single("image"), productController.updateProduct)
+router.delete("/:id", authenticate, isAdmin, productController.deleteProduct)
 
-// Admin Routes (Protected)
-router.post(
-    '/', 
-    authMiddleware.protect, 
-    authMiddleware.authorizeAdmin, 
-    upload.array('images', 10),  // ✅ Allow multiple images
-    productController.addProduct
-);
-
-router.put(
-    '/:id', 
-    authMiddleware.protect, 
-    authMiddleware.authorizeAdmin, 
-    upload.array('images', 10),  // ✅ Allow multiple image updates
-    productController.updateProduct
-);
-
-router.delete(
-    '/:id', 
-    authMiddleware.protect, 
-    authMiddleware.authorizeAdmin, 
-    productController.deleteProduct
-);
-
-module.exports = router;
+module.exports = router

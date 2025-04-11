@@ -38,6 +38,8 @@ exports.createCheckout = async (req, res) => {
       payment_status: "pending",
       shipping_address,
       billing_address: billing_address || shipping_address,
+      created_at: new Date(),
+      updated_at: new Date(),
     })
 
     res.status(201).json(checkout)
@@ -66,6 +68,7 @@ exports.updatePaymentStatus = async (req, res) => {
     await checkout.update({
       payment_intent_id,
       payment_status,
+      updated_at: new Date(),
     })
 
     // Update order payment status if checkout payment succeeded
@@ -75,6 +78,7 @@ exports.updatePaymentStatus = async (req, res) => {
         await order.update({
           payment_status: "paid",
           status: "processing",
+          updated_at: new Date(),
         })
       }
     }

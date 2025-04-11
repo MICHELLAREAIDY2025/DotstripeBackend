@@ -1,9 +1,11 @@
-const { Service } = require("../models")
+const { Service, Cart, OrderItem } = require("../models")
 
 // Get all services
 exports.getAllServices = async (req, res) => {
   try {
-    const services = await Service.findAll()
+    const services = await Service.findAll({
+      order: [["name", "ASC"]],
+    })
     res.status(200).json(services)
   } catch (error) {
     console.error("Error fetching services:", error)
@@ -42,6 +44,8 @@ exports.createService = async (req, res) => {
       price,
       duration,
       image_url,
+      created_at: new Date(),
+      updated_at: new Date(),
     })
 
     res.status(201).json(newService)
@@ -67,6 +71,7 @@ exports.updateService = async (req, res) => {
       price: price || service.price,
       duration: duration !== undefined ? duration : service.duration,
       image_url: image_url !== undefined ? image_url : service.image_url,
+      updated_at: new Date(),
     })
 
     res.status(200).json(service)
@@ -83,6 +88,16 @@ exports.deleteService = async (req, res) => {
 
     if (!service) {
       return res.status(404).json({ message: "Service not found" })
+    }
+
+    // Check if service is in any cart or order
+    const cartCount = await Cart.count({ where: { service_id: req.params.id } })
+    const orderCount = await OrderItem.count({ where: { service_id: req.params.id } })
+
+    if (cartCount > 0 || orderCount > 0) {
+      return res.status(400).json({
+        message: "Cannot delete service that is in carts or orders",
+      })
     }
 
     await service.destroy()

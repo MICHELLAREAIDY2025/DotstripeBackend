@@ -1,9 +1,11 @@
-const { Category } = require("../models")
+const { Category, Product } = require("../models")
 
 // Get all categories
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.findAll()
+    const categories = await Category.findAll({
+      order: [["name", "ASC"]],
+    })
     res.status(200).json(categories)
   } catch (error) {
     console.error("Error fetching categories:", error)
@@ -14,10 +16,13 @@ exports.getAllCategories = async (req, res) => {
 // Get category by ID
 exports.getCategoryById = async (req, res) => {
   try {
-    const category = await Category.findByPk(req.params.id)
+    const { id } = req.params
+    const category = await Category.findByPk(id)
+
     if (!category) {
       return res.status(404).json({ message: "Category not found" })
     }
+
     res.status(200).json(category)
   } catch (error) {
     console.error("Error fetching category:", error)
@@ -38,6 +43,8 @@ exports.createCategory = async (req, res) => {
       name,
       description,
       image_url,
+      created_at: new Date(),
+      updated_at: new Date(),
     })
 
     res.status(201).json(newCategory)
@@ -50,17 +57,21 @@ exports.createCategory = async (req, res) => {
 // Update category
 exports.updateCategory = async (req, res) => {
   try {
+    const { id } = req.params
     const { name, description, image_url } = req.body
-    const category = await Category.findByPk(req.params.id)
 
+    // Check if category exists
+    const category = await Category.findByPk(id)
     if (!category) {
       return res.status(404).json({ message: "Category not found" })
     }
 
+    // Update category
     await category.update({
       name: name || category.name,
       description: description !== undefined ? description : category.description,
       image_url: image_url !== undefined ? image_url : category.image_url,
+      updated_at: new Date(),
     })
 
     res.status(200).json(category)
@@ -73,12 +84,26 @@ exports.updateCategory = async (req, res) => {
 // Delete category
 exports.deleteCategory = async (req, res) => {
   try {
-    const category = await Category.findByPk(req.params.id)
+    const { id } = req.params
 
+    // Check if category exists
+    const category = await Category.findByPk(id)
     if (!category) {
       return res.status(404).json({ message: "Category not found" })
     }
 
+    // Check if category is being used by products
+    const productsCount = await Product.count({
+      where: { category_id: id },
+    })
+
+    if (productsCount > 0) {
+      return res.status(400).json({
+        message: "Cannot delete category that has products. Remove or reassign products first.",
+      })
+    }
+
+    // Delete category
     await category.destroy()
     res.status(200).json({ message: "Category deleted successfully" })
   } catch (error) {

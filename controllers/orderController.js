@@ -14,7 +14,7 @@ exports.getUserOrders = async (req, res) => {
           include: [{ model: Product }, { model: Service }],
         },
       ],
-      order: [["createdAt", "DESC"]],
+      order: [["created_at", "DESC"]],
     })
 
     res.status(200).json(orders)
@@ -81,12 +81,11 @@ exports.createOrder = async (req, res) => {
 
     // Calculate total amount
     let totalAmount = 0
-
     for (const item of cartItems) {
       if (item.Product) {
-        totalAmount += item.Product.price * item.quantity
+        totalAmount += Number.parseFloat(item.Product.price) * item.quantity
       } else if (item.Service) {
-        totalAmount += item.Service.price * item.quantity
+        totalAmount += Number.parseFloat(item.Service.price) * item.quantity
       }
     }
 
@@ -99,21 +98,26 @@ exports.createOrder = async (req, res) => {
         shipping_address,
         payment_method,
         payment_status: "pending",
+        created_at: new Date(),
+        updated_at: new Date(),
       },
       { transaction },
     )
 
     // Create order items
     const orderItems = []
-
     for (const item of cartItems) {
+      const price = item.Product ? item.Product.price : item.Service.price
+
       const orderItem = await OrderItem.create(
         {
           order_id: order.id,
           product_id: item.product_id,
           service_id: item.service_id,
           quantity: item.quantity,
-          price: item.Product ? item.Product.price : item.Service.price,
+          price,
+          created_at: new Date(),
+          updated_at: new Date(),
         },
         { transaction },
       )
@@ -156,7 +160,11 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Order not found" })
     }
 
-    await order.update({ status })
+    await order.update({
+      status,
+      updated_at: new Date(),
+    })
+
     res.status(200).json(order)
   } catch (error) {
     console.error("Error updating order status:", error)
@@ -182,10 +190,16 @@ exports.cancelOrder = async (req, res) => {
     }
 
     if (["shipped", "delivered"].includes(order.status)) {
-      return res.status(400).json({ message: "Cannot cancel order that has been shipped or delivered" })
+      return res.status(400).json({
+        message: "Cannot cancel order that has been shipped or delivered",
+      })
     }
 
-    await order.update({ status: "cancelled" })
+    await order.update({
+      status: "cancelled",
+      updated_at: new Date(),
+    })
+
     res.status(200).json(order)
   } catch (error) {
     console.error("Error cancelling order:", error)
