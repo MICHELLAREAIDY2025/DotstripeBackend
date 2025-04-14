@@ -24,8 +24,11 @@ const Checkout = sequelize.define(
       type: DataTypes.STRING,
     },
     payment_status: {
-      type: DataTypes.ENUM("pending", "processing", "succeeded", "failed"),
+      type: DataTypes.STRING, // Changed from ENUM to STRING
       defaultValue: "pending",
+      validate: {
+        isIn: [["pending", "processing", "succeeded", "failed"]],
+      },
     },
     shipping_address: {
       type: DataTypes.TEXT,

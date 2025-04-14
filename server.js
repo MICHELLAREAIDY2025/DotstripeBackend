@@ -5,7 +5,7 @@ const path = require("path")
 require("dotenv").config()
 
 // Import database connection
-const db = require("./config/db")
+const sequelize = require("./config/db")
 
 // Import routes
 const categoryRoutes = require("./routes/categoryRoutes")
@@ -14,7 +14,7 @@ const serviceRoutes = require("./routes/serviceRoutes")
 const cartRoutes = require("./routes/cartRoutes")
 const orderRoutes = require("./routes/orderRoutes")
 const checkoutRoutes = require("./routes/checkoutRoutes")
-const userRoutes = require("./routes/userRoutes") // Add this line to import user routes
+const userRoutes = require("./routes/userRoutes")
 
 // Initialize express app
 const app = express()
@@ -41,7 +41,7 @@ app.use("/api/services", serviceRoutes)
 app.use("/api/cart", cartRoutes)
 app.use("/api/orders", orderRoutes)
 app.use("/api/checkout", checkoutRoutes)
-app.use("/api/users", userRoutes) // Add this line to register user routes
+app.use("/api/users", userRoutes)
 
 // Root route
 app.get("/", (req, res) => {
@@ -58,9 +58,19 @@ app.use((err, req, res, next) => {
   })
 })
 
-// Start server
-const PORT = process.env.PORT || 5000
+// Database connection and server start
+// Using a safer approach for database sync
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log("Database connection established successfully.")
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
+    // Start server without altering tables
+    const PORT = process.env.PORT || 5000
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`)
+    })
+  })
+  .catch((err) => {
+    console.error("Unable to connect to the database:", err)
+  })

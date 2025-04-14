@@ -4,12 +4,15 @@ const orderController = require("../controllers/orderController")
 const { authenticate, isAdmin } = require("../middlewares/authMiddleware")
 
 // User routes (require authentication)
-router.get("/", authenticate, orderController.getUserOrders)
-router.get("/:id", authenticate, orderController.getOrderById)
+
 router.post("/", authenticate, orderController.createOrder)
-router.put("/:id/cancel", authenticate, orderController.cancelOrder)
+
 
 // Admin routes
 router.put("/:id/status", authenticate, isAdmin, orderController.updateOrderStatus)
+router.delete("/:id", authenticate, isAdmin, orderController.deleteOrder)
+router.put("/:id/cancel", authenticate, isAdmin, orderController.cancelOrder)
+router.get("/", authenticate, isAdmin, orderController.getUserOrders)
+router.get("/:id", authenticate,isAdmin, orderController.getOrderById)
 
 module.exports = router

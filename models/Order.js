@@ -18,8 +18,11 @@ const Order = sequelize.define(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM("pending", "processing", "shipped", "delivered", "cancelled"),
+      type: DataTypes.STRING, // Changed from ENUM to STRING to match existing schema
       defaultValue: "pending",
+      validate: {
+        isIn: [["pending", "processing", "shipped", "delivered", "cancelled"]],
+      },
     },
     shipping_address: {
       type: DataTypes.TEXT,
@@ -28,8 +31,11 @@ const Order = sequelize.define(
       type: DataTypes.STRING,
     },
     payment_status: {
-      type: DataTypes.ENUM("pending", "paid", "failed"),
+      type: DataTypes.STRING, // Changed from ENUM to STRING
       defaultValue: "pending",
+      validate: {
+        isIn: [["pending", "paid", "failed"]],
+      },
     },
     created_at: {
       type: DataTypes.DATE,

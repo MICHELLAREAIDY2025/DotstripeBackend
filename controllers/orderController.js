@@ -206,3 +206,26 @@ exports.cancelOrder = async (req, res) => {
     res.status(500).json({ message: "Failed to cancel order", error: error.message })
   }
 }
+// Delete an order (admin only)
+exports.deleteOrder = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const order = await Order.findByPk(id)
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" })
+    }
+
+    // Optionally: delete associated order items and checkout records
+    await OrderItem.destroy({ where: { order_id: id } })
+    await Checkout.destroy({ where: { order_id: id } })
+
+    await order.destroy()
+
+    res.status(200).json({ message: "Order deleted successfully" })
+  } catch (error) {
+    console.error("Error deleting order:", error)
+    res.status(500).json({ message: "Failed to delete order", error: error.message })
+  }
+}

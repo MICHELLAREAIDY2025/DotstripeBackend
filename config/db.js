@@ -12,8 +12,8 @@ const maskedConnectionString = connectionString
 console.log("Attempting to connect to database with Sequelize...")
 console.log("Connection string (masked):", maskedConnectionString)
 
-// Create Sequelize instance
-const sequelize = new Sequelize(connectionString, {
+// Create Sequelize instance with better SSL configuration
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
   protocol: "postgres",
   dialectOptions: {
@@ -21,25 +21,14 @@ const sequelize = new Sequelize(connectionString, {
       require: true,
       rejectUnauthorized: false,
     },
-    statement_timeout: 30000,
   },
+  logging: false, // Set to true for debugging
   pool: {
     max: 5,
     min: 0,
-    acquire: 60000,
+    acquire: 30000,
     idle: 10000,
   },
-  logging: process.env.NODE_ENV === "development" ? console.log : false,
 })
-
-// Test the connection
-sequelize
-  .authenticate()
-  .then(() => {
-    console.log("Database connection has been established successfully.")
-  })
-  .catch((err) => {
-    console.error("Unable to connect to the database:", err)
-  })
 
 module.exports = sequelize
