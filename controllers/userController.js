@@ -53,9 +53,10 @@ exports.login = async (req, res) => {
       message: "Login successful",
       user: userWithoutPassword,
     })
-  } catch (error) {
-    console.error("Login Error:", error)
-    return res.status(500).json({ error: "Something went wrong. Please try again." })
+  } catch (err) {
+    const message = err?.response?.data?.error || err?.response?.data?.message || err.message || "Unable to login";
+    console.error("Login Error:", message);
+    return res.status(500).json({ error: message })
   }
 }
 

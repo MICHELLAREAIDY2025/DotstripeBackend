@@ -48,6 +48,22 @@ app.get("/", (req, res) => {
   res.send("E-commerce API is running!")
 })
 
+app.get('/products', (req, res) => {
+  // Replace with your real product data
+  res.json([
+    { id: 1, name: "Product 1", price: 10 },
+    { id: 2, name: "Product 2", price: 20 }
+  ]);
+});
+
+app.get('/categories', (req, res) => {
+  // Replace with your real category data
+  res.json([
+    { id: 1, name: "Category 1" },
+    { id: 2, name: "Category 2" }
+  ]);
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack)
