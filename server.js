@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser")
 const path = require("path")
 const bodyParser = require("body-parser")
 require("dotenv").config()
+const uploadRoutes = require('./routes/uploadRoutes');
 
 // Import database connection
 const sequelize = require("./config/db")
@@ -44,6 +45,7 @@ app.use("/api/cart", cartRoutes)
 app.use("/api/orders", orderRoutes)
 app.use("/api/checkout", checkoutRoutes)
 app.use("/api/users", userRoutes)
+app.use("/api/uploads", uploadRoutes);
 
 // Root route
 app.get("/", (req, res) => {
