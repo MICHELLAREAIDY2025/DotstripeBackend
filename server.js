@@ -2,6 +2,7 @@ const express = require("express")
 const cors = require("cors")
 const cookieParser = require("cookie-parser")
 const path = require("path")
+const bodyParser = require("body-parser")
 require("dotenv").config()
 
 // Import database connection
@@ -30,6 +31,7 @@ app.use(cors(corsOptions))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
+app.use(bodyParser.json())
 
 // Serve static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))

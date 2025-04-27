@@ -1,25 +1,52 @@
 const jwt = require("jsonwebtoken")
+const { User } = require("../models") // Make sure to import your User model
 require("dotenv").config()
 
-// Default JWT secret if not provided in environment variables
-const JWT_SECRET = process.env.JWT_SECRET || "your-default-secret-key-change-this-in-production"
-
 // Authenticate middleware
-exports.authenticate = (req, res, next) => {
+exports.authenticate = async (req, res, next) => {
   try {
-    const token = req.cookies.token || req.header("Authorization")?.replace("Bearer ", "")
+    let token
+
+    // Check for token in cookies first
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token
+    }
+    // Then check Authorization header (for API clients)
+    else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1]
+    }
 
     if (!token) {
       return res.status(401).json({ message: "Authentication required" })
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET)
-    req.user = decoded
+    // Verify token
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not defined in environment variables")
+      return res.status(500).json({ message: "Server configuration error" })
+    }
 
-    next()
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      
+      // Optional: Check if user still exists in database
+      // Uncomment if you want this additional security check
+      /*
+      const user = await User.findByPk(decoded.id)
+      if (!user) {
+        return res.status(401).json({ message: "User no longer exists" })
+      }
+      */
+
+      req.user = decoded
+      next()
+    } catch (error) {
+      console.error("JWT verification error:", error)
+      return res.status(401).json({ message: "Invalid or expired token" })
+    }
   } catch (error) {
-    console.error("Authentication error:", error)
-    res.status(401).json({ message: "Invalid or expired token" })
+    console.error("Authentication middleware error:", error)
+    return res.status(500).json({ message: "Server error" })
   }
 }
 
