@@ -1,6 +1,97 @@
 const { Order, OrderItem, Cart, Product, Service, Checkout } = require("../models")
 const sequelize = require("../config/db")
 
+
+exports.getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      include: [
+        {
+          model: OrderItem,
+          include: [{ model: Product }, { model: Service }],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    })
+
+    res.status(200).json(orders)
+  } catch (error) {
+    console.error("Error fetching all orders:", error)
+    res.status(500).json({ message: "Failed to fetch orders", error: error.message })
+  }
+}
+
+// Fix the getBestSellers function
+exports.getBestSellers = async (req, res) => {
+  try {
+    // Get query parameters for filtering
+    const { year, month } = req.query;
+    
+    console.log("Fetching best sellers with filters:", { year, month });
+    
+    // Build the SQL query for best sellers
+    let query = `
+      SELECT 
+        p.id, 
+        p.name as product_name, 
+        p.stock, 
+        COUNT(oi.product_id) as "totalSales"
+      FROM 
+        products p
+      JOIN 
+        order_items oi ON p.id = oi.product_id
+      JOIN 
+        orders o ON oi.order_id = o.id
+      WHERE 
+        o.status = 'delivered'
+    `;
+    
+    // Add filters if provided
+    const queryParams = [];
+    
+    if (year && year !== 'all') {
+      query += ` AND EXTRACT(YEAR FROM o.created_at) = ?`;
+      queryParams.push(year);
+    }
+    
+    if (month && month !== 'all') {
+      // Convert month name to month number (1-12)
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                         'July', 'August', 'September', 'October', 'November', 'December'];
+      const monthNumber = monthNames.indexOf(month) + 1;
+      
+      if (monthNumber > 0) {
+        query += ` AND EXTRACT(MONTH FROM o.created_at) = ?`;
+        queryParams.push(monthNumber);
+      }
+    }
+    
+    // Group by product and order by sales count
+    query += `
+      GROUP BY 
+        p.id, p.name, p.stock
+      ORDER BY 
+        "totalSales" DESC
+      LIMIT 10
+    `;
+    
+    console.log("Executing query:", query);
+    console.log("With parameters:", queryParams);
+    
+    // Execute the raw query
+    const results = await sequelize.query(query, {
+      replacements: queryParams,
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    console.log("Query results:", results);
+    res.status(200).json(results);
+  } catch (error) {
+    console.error('Error fetching best sellers:', error);
+    res.status(500).json({ error: 'Failed to fetch best-selling products', details: error.message });
+  }
+}
+
 // Get all orders for a user
 exports.getUserOrders = async (req, res) => {
   try {
