@@ -2,7 +2,7 @@ const express = require("express")
 const router = express.Router()
 const serviceController = require("../controllers/serviceController")
 const { authenticate, isAdmin } = require("../middlewares/authMiddleware")
-const upload = require("../middlewares/multer")
+const upload = require("../middlewares/uploadMiddleware")
 
 // Public routes
 router.get("/", serviceController.getAllServices)
