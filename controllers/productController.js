@@ -48,6 +48,8 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const { name, description, price, stock, category_id } = req.body;
+    console.log("Create product request body:", req.body);
+    console.log("File in request:", req.file);
 
     if (!name || !price) {
       return res.status(400).json({ message: "Product name and price are required" });
@@ -65,20 +67,23 @@ exports.createProduct = async (req, res) => {
     let image_url = null;
     if (req.file) {
       try {
+        console.log("Attempting to upload image to Supabase...");
         image_url = await uploadFileToSupabase(
           req.file.buffer,
           req.file.originalname,
           req.file.mimetype,
           'products'
         );
-        console.log("Image uploaded successfully:", image_url);
+        console.log("Image uploaded successfully to Supabase:", image_url);
       } catch (uploadError) {
-        console.error("Error uploading image:", uploadError);
+        console.error("Error uploading image to Supabase:", uploadError);
         return res.status(500).json({ 
           message: "Failed to upload product image", 
           error: uploadError.message 
         });
       }
+    } else {
+      console.log("No image file provided in request");
     }
 
     // Create product with image URL
@@ -87,11 +92,12 @@ exports.createProduct = async (req, res) => {
       description,
       price,
       stock: stock || 0,
-      image_url, // Store the Supabase URL
+      image_url,
       category_id,
       created_at: new Date(),
       updated_at: new Date(),
     });
+    console.log("Product created with image URL:", image_url);
 
     // Fetch the product with category for the response
     const productWithCategory = await Product.findByPk(newProduct.id, {
@@ -102,6 +108,7 @@ exports.createProduct = async (req, res) => {
         },
       ],
     });
+    console.log("Product with category:", productWithCategory);
 
     res.status(201).json(productWithCategory);
   } catch (error) {
@@ -115,6 +122,8 @@ exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, price, stock, category_id } = req.body;
+    console.log("Update product request body:", req.body);
+    console.log("File in request:", req.file);
 
     // Check if product exists
     const product = await Product.findByPk(id);
@@ -134,6 +143,7 @@ exports.updateProduct = async (req, res) => {
     let image_url = product.image_url;
     if (req.file) {
       try {
+        console.log("Attempting to upload new image to Supabase...");
         // Upload new image
         const newImageUrl = await uploadFileToSupabase(
           req.file.buffer,
@@ -141,21 +151,24 @@ exports.updateProduct = async (req, res) => {
           req.file.mimetype,
           'products'
         );
+        console.log("New image uploaded successfully to Supabase:", newImageUrl);
         
         // Delete old image if it exists
         if (product.image_url) {
+          console.log("Deleting old image from Supabase:", product.image_url);
           await deleteFileFromSupabase(product.image_url);
         }
         
         image_url = newImageUrl;
-        console.log("Image updated successfully:", image_url);
       } catch (uploadError) {
-        console.error("Error updating image:", uploadError);
+        console.error("Error updating image in Supabase:", uploadError);
         return res.status(500).json({ 
           message: "Failed to update product image", 
           error: uploadError.message 
         });
       }
+    } else {
+      console.log("No new image file provided in request");
     }
 
     // Update product
@@ -164,10 +177,11 @@ exports.updateProduct = async (req, res) => {
       description: description !== undefined ? description : product.description,
       price: price || product.price,
       stock: stock !== undefined ? stock : product.stock,
-      image_url: image_url, // Updated image URL or existing one
+      image_url: image_url,
       category_id: category_id !== undefined ? category_id : product.category_id,
       updated_at: new Date(),
     });
+    console.log("Product updated with image URL:", image_url);
 
     // Fetch the updated product with category for the response
     const updatedProduct = await Product.findByPk(id, {
@@ -178,6 +192,7 @@ exports.updateProduct = async (req, res) => {
         },
       ],
     });
+    console.log("Updated product with category:", updatedProduct);
 
     res.status(200).json(updatedProduct);
   } catch (error) {
