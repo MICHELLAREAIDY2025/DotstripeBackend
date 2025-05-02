@@ -1,4 +1,4 @@
-const { Cart, Product, Service } = require("../models")
+const { Cart, Product, Service, Category } = require("../models")
 
 // Get user's cart
 exports.getUserCart = async (req, res) => {
@@ -10,7 +10,13 @@ exports.getUserCart = async (req, res) => {
       include: [
         {
           model: Product,
-          attributes: ["id", "name", "price", "image_url"],
+          attributes: ["id", "name", "price", "image_url", "description", "stock"],
+          include: [
+            {
+              model: Category,
+              attributes: ["id", "name"],
+            },
+          ],
         },
         {
           model: Service,

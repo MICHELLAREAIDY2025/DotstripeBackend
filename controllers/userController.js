@@ -262,3 +262,58 @@ exports.getAllUsers = async (req, res) => {
     return res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 };
+
+// Update user by ID (Admin only)
+exports.updateUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, newPassword, address } = req.body;
+
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (email && email !== user.email) {
+      if (!validateEmail(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      const existingUser = await User.findOne({ where: { email } });
+
+      if (existingUser) {
+        return res.status(409).json({ error: "This email is already in use" });
+      }
+    }
+
+    let updatedPassword = user.password;
+    if (newPassword) {
+      if (!validatePassword(newPassword)) {
+        return res.status(400).json({
+          error: "New password must be at least 6 characters long, contain at least 1 uppercase letter and 1 number",
+        });
+      }
+      updatedPassword = hashPassword(newPassword);
+    }
+
+    // Update user
+    await user.update({
+      name: name || user.name,
+      email: email || user.email,
+      password: updatedPassword,
+      address: address !== undefined ? address : user.address,
+      updated_at: new Date(),
+    });
+
+    const { password: _, ...userWithoutPassword } = user.toJSON();
+
+    return res.status(200).json({
+      message: "User updated successfully!",
+      user: userWithoutPassword,
+    });
+  } catch (error) {
+    console.error("Update User By ID Error:", error.message || error);
+    return res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+};
