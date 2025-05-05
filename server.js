@@ -17,6 +17,7 @@ const cartRoutes = require("./routes/cartRoutes")
 const orderRoutes = require("./routes/orderRoutes")
 const checkoutRoutes = require("./routes/checkoutRoutes")
 const userRoutes = require("./routes/userRoutes")
+const shippingRoutes = require("./routes/shippingRoutes")
 
 // Initialize express app
 const app = express()
@@ -45,6 +46,7 @@ app.use("/api/cart", cartRoutes)
 app.use("/api/orders", orderRoutes)
 app.use("/api/checkout", checkoutRoutes)
 app.use("/api/users", userRoutes)
+app.use("/api/shipping", shippingRoutes)
 app.use("/api/uploads", uploadRoutes);
 
 // Root route

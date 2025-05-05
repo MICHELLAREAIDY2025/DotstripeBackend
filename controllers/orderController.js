@@ -1,5 +1,6 @@
-const { Order, OrderItem, Cart, Product, Service, Checkout } = require("../models")
+const { Order, OrderItem, Cart, Product, Service, Checkout, User } = require("../models")
 const sequelize = require("../config/db")
+const { sendOrderStatusEmail } = require("../services/emailService")
 
 
 exports.getAllOrders = async (req, res) => {
@@ -147,7 +148,7 @@ exports.createOrder = async (req, res) => {
     shipping_address,
     payment_method, // "cash"
     total_amount,
-    status: payment_method === "cash" ? "pending" : "awaiting_payment",
+    status: payment_method === "cash_on_delivery" ? "pending" : "awaiting_payment",
   });
   // 2. Create order items
   for (const item of items) {
@@ -160,6 +161,7 @@ exports.createOrder = async (req, res) => {
   }
   // 3. Optionally clear cart
   await Cart.destroy({ where: { user_id: userId } });
+  console.log("Order payload received:", req.body);
   res.status(201).json(order);
 }
 
@@ -173,18 +175,38 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status" })
     }
 
-    const order = await Order.findByPk(id)
+    const order = await Order.findByPk(id, {
+      include: [
+        {
+          model: User,
+          attributes: ['id', 'name', 'email']
+        }
+      ]
+    })
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" })
     }
 
+    // Update order status
     await order.update({
       status,
       updated_at: new Date(),
     })
 
-    res.status(200).json(order)
+    // Send email notification if status is not pending
+    if (status !== 'pending' && order.User) {
+      const emailSent = await sendOrderStatusEmail(order, order.User, status)
+      if (!emailSent) {
+        console.warn(`Failed to send email notification for order #${order.id}`)
+      }
+    }
+
+    res.status(200).json({
+      message: "Order status updated successfully",
+      order,
+      emailSent: status !== 'pending'
+    })
   } catch (error) {
     console.error("Error updating order status:", error)
     res.status(500).json({ message: "Failed to update order status", error: error.message })
