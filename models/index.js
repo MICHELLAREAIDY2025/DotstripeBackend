@@ -5,7 +5,7 @@ const Service = require("./Service")
 const User = require("./User")
 const Cart = require("./Cart")
 const Order = require("./Order")
-const OrderItem = require("./order-item") // Changed from ./OrderItem to ./order-item
+const OrderItem = require("./OrderItem")
 const Checkout = require("./Checkout")
 
 // Define associations
