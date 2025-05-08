@@ -24,8 +24,14 @@ const app = express()
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "*", // Allow any origin if FRONTEND_URL is not set
+  origin: [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000',
+    'https://your-vercel-app.vercel.app'  // Replace with your actual Vercel URL
+  ],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }
 
 // Middleware
