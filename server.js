@@ -9,6 +9,29 @@ const uploadRoutes = require('./routes/uploadRoutes');
 // Import database connection
 const sequelize = require("./config/db")
 
+// Verify environment variables
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'JWT_SECRET',
+  'SUPABASE_URL',
+  'SUPABASE_KEY',
+  'SUPABASE_BUCKET',
+  'FRONTEND_URL'
+];
+
+// Set default JWT expiration if not provided
+if (!process.env.JWT_EXPIRES) {
+  process.env.JWT_EXPIRES = '24h'; // Default to 24 hours
+  console.log('JWT_EXPIRES not set, using default value: 24h');
+}
+
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
+
 // Import routes
 const categoryRoutes = require("./routes/categoryRoutes")
 const productRoutes = require("./routes/productRoutes")
@@ -27,11 +50,21 @@ const corsOptions = {
   origin: [
     process.env.FRONTEND_URL,
     'http://localhost:3000',
-    'https://your-vercel-app.vercel.app'  // Replace with your actual Vercel URL
+    'https://dotstripe-frontend-git-michella-michellareaidy2025s-projects.vercel.app'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization']
+    /*'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Methods',
+    'Access-Control-Allow-Credentials'
+  ]*/
 }
 
 // Middleware
@@ -54,6 +87,32 @@ app.use("/api/checkout", checkoutRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/shipping", shippingRoutes)
 app.use("/api/uploads", uploadRoutes);
+
+// Test database connection endpoint
+app.get("/api/test-db", async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.json({
+      success: true,
+      message: "Database connection is working",
+      config: {
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        // Don't send password in response
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    });
+  }
+});
 
 // Root route
 app.get("/", (req, res) => {
@@ -87,18 +146,31 @@ app.use((err, req, res, next) => {
 })
 
 // Database connection and server start
-// Using a safer approach for database sync
 sequelize
   .authenticate()
   .then(() => {
     console.log("Database connection established successfully.")
+    console.log("Database configuration:", {
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      // Don't log the password for security
+    })
 
     // Start server without altering tables
     const PORT = process.env.PORT || 5000
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`)
+      console.log(`Environment: ${process.env.NODE_ENV}`)
     })
   })
   .catch((err) => {
     console.error("Unable to connect to the database:", err)
+    console.error("Database connection error details:", {
+      message: err.message,
+      code: err.code,
+      errno: err.errno,
+      sqlState: err.sqlState,
+      sqlMessage: err.sqlMessage
+    })
   })

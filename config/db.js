@@ -1,7 +1,7 @@
 const { Sequelize } = require("sequelize")
 require("dotenv").config()
 
-// Get connection string from environment variables
+// Get database configuration from environment variables
 const connectionString = process.env.DATABASE_URL
 
 // Log connection attempt (with masked password)
