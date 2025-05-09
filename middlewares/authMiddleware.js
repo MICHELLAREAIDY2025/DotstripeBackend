@@ -30,15 +30,18 @@ exports.authenticate = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
       
       // Optional: Check if user still exists in database
-      // Uncomment if you want this additional security check
-      /*
+      
       const user = await User.findByPk(decoded.id)
       if (!user) {
         return res.status(401).json({ message: "User no longer exists" })
       }
-      */
+      
 
-      req.user = decoded
+      // Add user to request
+        req.user = {
+        id: user.id,
+        role: user.role,
+      }
       next()
     } catch (error) {
       console.error("JWT verification error:", error)

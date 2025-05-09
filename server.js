@@ -56,15 +56,12 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
-    'Authorization']
-    /*'X-Requested-With',
+    'Authorization',
+    'X-Requested-With',
     'Accept',
-    'Origin',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Credentials'
-  ]*/
+    'Origin'
+  ],
+  exposedHeaders: ['Set-Cookie']
 }
 
 // Middleware
