@@ -45,6 +45,7 @@ exports.login = async (req, res) => {
       //sameSite: "strict",
       sameSite: "None", // important for cross-site cookies
       maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/", // important for cross-site cookies 
     });
 
     const { password: _, ...userWithoutPassword } = user.toJSON();

@@ -45,12 +45,10 @@ const shippingRoutes = require("./routes/shippingRoutes")
 // Initialize express app
 const app = express()
 
-// CORS configuration
 const corsOptions = {
   origin: [
-    process.env.FRONTEND_URL,
-    'http://localhost:3000',
-    'https://dotstripe-frontend-git-michella-michellareaidy2025s-projects.vercel.app'
+    'https://dotstripe-frontend.vercel.app', // Your Vercel frontend domain
+    'http://localhost:3000'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
