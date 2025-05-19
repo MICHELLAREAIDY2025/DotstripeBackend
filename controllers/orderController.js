@@ -114,18 +114,11 @@ exports.getOrderById = async (req, res) => {
       return res.status(400).json({ message: "Invalid order ID" })
     }
 
-    const order = await Order.findOne({
-      where: {
-        id,
-        user_id: userId,
-      },
+    const order = await Order.findByPk(id, {
       include: [
-        {
-          model: OrderItem,
-          include: [{ model: Product }, { model: Service }],
-        },
-        { model: Checkout },
-      ],
+        { model: User, attributes: ['id', 'name', 'email'] },
+        { model: OrderItem, include: [{ model: Product, attributes: ['name'] }] }
+      ]
     })
 
     if (!order) {
