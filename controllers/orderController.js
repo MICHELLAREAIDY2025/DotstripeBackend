@@ -106,7 +106,6 @@ exports.getUserOrders = async (req, res) => {
 // Get order by ID
 exports.getOrderById = async (req, res) => {
   try {
-    const userId = req.user.id // Assuming user ID is available from auth middleware
     const { id } = req.params
 
     // Validate that id is a number
@@ -117,7 +116,19 @@ exports.getOrderById = async (req, res) => {
     const order = await Order.findByPk(id, {
       include: [
         { model: User, attributes: ['id', 'name', 'email'] },
-        { model: OrderItem, include: [{ model: Product, attributes: ['name'] }] }
+        {
+          model: OrderItem,
+          include: [
+            {
+              model: Product,
+              attributes: ['id', 'name', 'price', 'image'] // Add any other fields you need
+            },
+            {
+              model: Service, // If you want to include service info as well
+              attributes: ['id', 'name', 'price']
+            }
+          ]
+        }
       ]
     })
 
