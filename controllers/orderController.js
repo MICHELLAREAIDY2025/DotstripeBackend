@@ -9,8 +9,17 @@ exports.getAllOrders = async (req, res) => {
       include: [
         {
           model: OrderItem,
-          include: [{ model: Product }, { model: Service }],
-        },
+          include: [
+            {
+              model: Product,
+              attributes: ['id', 'name', 'price', 'image_url', 'description', 'stock']
+            },
+            {
+              model: Service,
+              attributes: ['id', 'name', 'price', 'image_url']
+            }
+          ]
+        }
       ],
       order: [["created_at", "DESC"]],
     })
@@ -95,12 +104,32 @@ exports.getBestSellers = async (req, res) => {
 
 // Get all orders for a user
 exports.getUserOrders = async (req, res) => {
-  const userId = req.user.id;
-  const orders = await Order.findAll({
-    where: { user_id: userId },
-    include: [{ model: OrderItem, include: [Product] }],
-  });
-  res.json(orders);
+  try {
+    const userId = req.user.id;
+    const orders = await Order.findAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: OrderItem,
+          include: [
+            {
+              model: Product,
+              attributes: ['id', 'name', 'price', 'image_url', 'description', 'stock']
+            },
+            {
+              model: Service,
+              attributes: ['id', 'name', 'price', 'image_url']
+            }
+          ]
+        }
+      ],
+      order: [["created_at", "DESC"]]
+    });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    res.status(500).json({ message: "Failed to fetch user orders", error: error.message });
+  }
 }
 
 // Get order by ID
@@ -115,17 +144,22 @@ exports.getOrderById = async (req, res) => {
 
     const order = await Order.findByPk(id, {
       include: [
-        { model: User, attributes: ['id', 'name', 'email'] },
+        { 
+          model: User, 
+          attributes: ['id', 'name', 'email'] 
+        },
         {
           model: OrderItem,
           include: [
             {
               model: Product,
-              attributes: ['id', 'name', 'price', 'image'] // Add any other fields you need
+              attributes: ['id', 'name', 'price', 'image_url', 'description', 'stock'],
+              required: false
             },
             {
-              model: Service, // If you want to include service info as well
-              attributes: ['id', 'name', 'price']
+              model: Service,
+              attributes: ['id', 'name', 'price', 'image_url'],
+              required: false
             }
           ]
         }
@@ -136,7 +170,23 @@ exports.getOrderById = async (req, res) => {
       return res.status(404).json({ message: "Order not found" })
     }
 
-    res.status(200).json(order)
+    // Transform the order data to ensure image_url is properly handled
+    const transformedOrder = {
+      ...order.toJSON(),
+      OrderItems: order.OrderItems.map(item => ({
+        ...item.toJSON(),
+        Product: item.Product ? {
+          ...item.Product.toJSON(),
+          image: item.Product.image_url // Add image field for backward compatibility
+        } : null,
+        Service: item.Service ? {
+          ...item.Service.toJSON(),
+          image: item.Service.image_url // Add image field for backward compatibility
+        } : null
+      }))
+    }
+
+    res.status(200).json(transformedOrder)
   } catch (error) {
     console.error("Error fetching order:", error)
     res.status(500).json({ message: "Failed to fetch order", error: error.message })
