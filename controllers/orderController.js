@@ -1,5 +1,5 @@
 const { Order, OrderItem, Cart, Product, Service, Checkout, User } = require("../models")
-const sequelize = require("../config/db")
+const sequelize = require("../config/db")// Import the Sequelize instance (database connection) from the configuration file
 const { sendOrderStatusEmail } = require("../services/emailService")
 
 

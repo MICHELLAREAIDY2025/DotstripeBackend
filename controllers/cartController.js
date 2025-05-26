@@ -1,4 +1,4 @@
-const { Cart, Product, Service, Category } = require("../models")
+const { Cart, Product, Service, Category } = require("../models")// Importing multiple models
 
 // Get user's cart
 exports.getUserCart = async (req, res) => {
@@ -6,8 +6,8 @@ exports.getUserCart = async (req, res) => {
     const userId = req.user.id // Assuming user ID is available from auth middleware
 
     const cartItems = await Cart.findAll({
-      where: { user_id: userId },
-      include: [
+      where: { user_id: userId },//filter cart items by user id 
+      include: [  // Include associated models (Product and Service) in the result
         {
           model: Product,
           attributes: ["id", "name", "price", "image_url", "description", "stock"],
@@ -58,10 +58,11 @@ exports.addToCart = async (req, res) => {
     }
 
     // Check if item already exists in cart
-    const whereClause = { user_id: userId }
-    if (product_id) {
+    const whereClause = { user_id: userId }// Start building a query condition with user ID
+
+    if (product_id) { // If a product_id is provided, add it to the query condition
       whereClause.product_id = product_id
-    } else {
+    } else {  // Otherwise, assume it's a service and add service_id to the condition
       whereClause.service_id = service_id
     }
 
